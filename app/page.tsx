@@ -23,17 +23,56 @@ const CRISIS_MESSAGES = [
   "Tatlı yerine 3 tane ceviz ve 1 tane kuru kayısı yiyebilirsin. 🥜"
 ];
 
+// RASTGELE AŞK NOTLARI
+const LOVE_NOTES = [
+  "Gözlerindeki o azim beni sana her gün yeniden aşık ediyor sevgilim. ❤️",
+  "Seninle gurur duyuyorum! Sadece şekersiz bir hayat değil, benim için hayatın ta kendisisin. 🌸",
+  "Dünyanın en güzel, en iradeli sevgilisine kocaman bir öpücük! 😘",
+  "Zorlandığında gözlerini kapat ve sana nasıl hayranlıkla baktığımı hatırla bebeğim. ✨",
+  "Seni her halinle, her şeyinle çok seviyorum. Bu süreçte en büyük destekçin benim! 🌍❤️",
+  "İçindeki gücü biliyorum. Sen istersen her şeyi başarırsın benim güzel sevgilim. 💪💖",
+  "Bugün de harika görünüyorsun! Gülümsemen benim en büyük tatlım. 🍓",
+  "Yaptığın her şeyde yanındayım. Sen çok güçlüsün ve harika gidiyorsun aşkım! 🌟"
+];
+
+const BIO_FACTS: Record<number, string> = {
+  1: "İlk gün her zaman en zorudur. Vücudun şu an şekere ulaşamadığı için şaşkın ama hızlıca alışacak!",
+  2: "Kan şekeri seviyelerin yavaş yavaş dengelenmeye başlıyor. İnsülin direncin kırılıyor.",
+  3: "Tebrikler! Vücudundaki glikojen depoları boşalıyor ve yağ yakımı modu hızlanıyor.",
+  4: "Dilindeki tat tomurcukları şekersizliğe alışıyor. Artık meyveler sana daha tatlı gelecek.",
+  5: "Enerji seviyelerindeki ani düşüşler (öğleden sonraki uyku hali) ortadan kalkmaya başladı.",
+  7: "Bir hafta bitti! Cildindeki kolajen yıkımı yavaşladı, aynaya bak daha parlak bir cildin var! ✨",
+  10: "Bağırsak floran değişiyor! Kötü bakteriler azalırken, bağışıklığını güçlendiren bakteriler çoğalıyor.",
+  14: "İki hafta geride kaldı! Kalp sağlığın iyileşiyor ve vücudundaki ödem/şişkinlik büyük oranda atıldı.",
+  18: "Şeker bağımlılığı döngüsü tamamen kırıldı. Artık tatlı krizleri seni değil, sen onları yönetiyorsun.",
+  21: "BAŞARDIN! Vücudun tamamen yenilendi, metabolizman hızlandı ve yepyeni bir sana dönüştün! 🦋"
+};
+
+const getBioFact = (day: number) => BIO_FACTS[day] || "Vücudun şekersizliğe alıştıkça hücrelerin yenileniyor ve gün boyu enerjin dengede kalıyor. Harika gidiyorsun!";
+
+// GÜNCELLENEN ÖDÜL SİSTEMİ
+const REWARDS = {
+  3: "Güzel Başlangıç Rozeti! Hakan'dan sana kocaman bir aferin ve sarılma! 🤗",
+  7: "7. Gün Ödülü: Harika gidiyorsun! Hakan'dan sana 500 TL nakit ödül! 💸💖",
+  14: "14. Gün Ödülü: İradene hayranım! Hakan'dan sana 1000 TL nakit ödül! 💸💖",
+  21: "🏆 BÜYÜK FİNAL! Şekeri yendin, sen bir harikasın! Hakan'dan sana tam 1500 TL büyük ödül! 💸💖"
+};
+
 export default function Home() {
   const [activeTab, setActiveTab] = useState<'calendar' | 'form' | 'stats'>('calendar');
   const [records, setRecords] = useState<any[]>([]);
   const [selectedDay, setSelectedDay] = useState(1);
   const [loading, setLoading] = useState(true);
   const [formStatus, setFormStatus] = useState('');
+  
+  // Modals
   const [showCrisis, setShowCrisis] = useState(false);
   const [crisisMsg, setCrisisMsg] = useState('');
+  const [rewardModal, setRewardModal] = useState<{title: string, text: string} | null>(null);
+  const [secretNoteModal, setSecretNoteModal] = useState<string | null>(null);
+  
   const [streak, setStreak] = useState(0);
 
-  // Varsaılan durum artık: seker_tuketimi: true (Başardım! Şeker Yemedim)
   const [formData, setFormData] = useState({
     seker_tuketimi: true, su_miktari: '', adim_sayisi: '',
     ogun_detayi: '', gece_yemegi: false, kilo: '', tatli_istegi: 1
@@ -54,12 +93,25 @@ export default function Home() {
   };
 
   const calculateStreak = (data: any[]) => {
+    let maxStreak = 0;
     let currentStreak = 0;
-    for (let i = data.length - 1; i >= 0; i--) {
-      if (data[i].seker_tuketimi) currentStreak++;
-      else break;
+    let prevDay = 0;
+
+    const sorted = [...data].sort((a,b) => a.gun_sayisi - b.gun_sayisi);
+    for (const rec of sorted) {
+      if (rec.seker_tuketimi) {
+        if (prevDay === 0 || rec.gun_sayisi === prevDay + 1) {
+          currentStreak++;
+        } else if (rec.gun_sayisi !== prevDay) {
+          currentStreak = 1;
+        }
+        if (currentStreak > maxStreak) maxStreak = currentStreak;
+      } else {
+        currentStreak = 0;
+      }
+      prevDay = rec.gun_sayisi;
     }
-    setStreak(currentStreak);
+    setStreak(maxStreak);
   };
 
   const openFormForDay = (day: number) => {
@@ -75,7 +127,6 @@ export default function Home() {
         tatli_istegi: existing.tatli_istegi || 1
       });
     } else {
-      // Yeni gün girilirken otomatik olarak 'Başardım' (true) gelir
       setFormData({ seker_tuketimi: true, su_miktari: '', adim_sayisi: '', ogun_detayi: '', gece_yemegi: false, kilo: '', tatli_istegi: 1 });
     }
     setSelectedDay(day);
@@ -113,7 +164,7 @@ export default function Home() {
     } else {
       setFormStatus('✨ Başarıyla kaydedildi! ✨');
       if (selectedDay === 21 && formData.seker_tuketimi) {
-        confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 }, colors: ['#ff69b4', '#ffffff', '#ffb6c1'] });
+        confetti({ particleCount: 200, spread: 90, origin: { y: 0.6 }, colors: ['#ff69b4', '#ffffff', '#ffb6c1'] });
       }
       fetchRecords();
       setTimeout(() => setActiveTab('calendar'), 1500);
@@ -126,24 +177,33 @@ export default function Home() {
     setShowCrisis(true);
   };
 
+  const triggerLoveNote = () => {
+    const randomNote = LOVE_NOTES[Math.floor(Math.random() * LOVE_NOTES.length)];
+    setSecretNoteModal(randomNote);
+  };
+
+  const handleBadgeClick = (req: number, title: string) => {
+    if (streak >= req) {
+      setRewardModal({ title: `✨ ${title} Kilidi Açıldı! ✨`, text: REWARDS[req as keyof typeof REWARDS] });
+    } else {
+      setRewardModal({ title: `🔒 Kilitli Kutu (${title})`, text: `Bu ödülün kilidini açmak için ${req} gün boyunca aralıksız şekersiz beslenmelisin! Şu anki rekorun: ${streak} gün. Hadi yapabilirsin! 💪` });
+    }
+  };
+
   const todayQuote = MOTIVATION_QUOTES[new Date().getDay() % MOTIVATION_QUOTES.length];
 
-  // İSTATİSTİK HESAPLAMALARI
+  // STATS
   const totalDays = records.length;
   const sugarFreeDays = records.filter(r => r.seker_tuketimi).length;
   const successRate = totalDays ? Math.round((sugarFreeDays / totalDays) * 100) : 0;
-  
   const validSteps = records.map(r => r.adim_sayisi).filter(a => a && a > 0);
   const avgSteps = validSteps.length ? Math.round(validSteps.reduce((a,b)=>a+b,0) / validSteps.length) : 0;
   const stepTarget = 10000;
   const stepPercent = avgSteps ? Math.round((avgSteps / stepTarget) * 100) : 0;
   const stepDiffPercent = Math.abs(100 - stepPercent);
-
   const validCravings = records.map(r => r.tatli_istegi).filter(t => t);
   const avgCraving = validCravings.length ? (validCravings.reduce((a,b)=>a+b,0) / validCravings.length).toFixed(1) : 0;
-  
   const nightSnacks = records.filter(r => r.gece_yemegi).length;
-
   const weights = records.filter(r => r.kilo).sort((a,b) => a.gun_sayisi - b.gun_sayisi);
   const weightLost = weights.length >= 2 ? (weights[0].kilo - weights[weights.length - 1].kilo).toFixed(1) : 0;
 
@@ -169,17 +229,27 @@ export default function Home() {
         {/* CALENDAR VIEW */}
         {activeTab === 'calendar' && (
           <div className="bg-white/70 backdrop-blur-xl rounded-[2rem] p-6 shadow-xl border border-white">
-            <div className="flex justify-center space-x-4 mb-6">
-              <div className={`flex flex-col items-center ${streak >= 3 ? 'opacity-100' : 'opacity-30 grayscale'}`}>
-                <span className="text-3xl">🥉</span><span className="text-xs font-bold mt-1 text-pink-600">3 Gün</span>
+            
+            {/* ETKİLEŞİMLİ ROZETLER VE ÖDÜLLER */}
+            <div className="bg-pink-50 rounded-2xl p-4 mb-6 border border-pink-100">
+              <h3 className="text-xs font-bold text-center text-pink-500 mb-3 uppercase tracking-wider">Hediye & Ödül Kutuları</h3>
+              <div className="flex justify-between items-center px-2">
+                <button onClick={() => handleBadgeClick(3, '3 Gün Rozeti')} className={`flex flex-col items-center transition-all ${streak >= 3 ? 'opacity-100 scale-110 drop-shadow-md' : 'opacity-40 grayscale'}`}>
+                  <span className="text-3xl">🥉</span><span className="text-[10px] font-bold mt-1 text-pink-600">3 Gün</span>
+                </button>
+                <button onClick={() => handleBadgeClick(7, '7 Gün Sürprizi')} className={`flex flex-col items-center transition-all ${streak >= 7 ? 'opacity-100 scale-110 drop-shadow-md animate-bounce' : 'opacity-40 grayscale'}`}>
+                  <span className="text-3xl">🎁</span><span className="text-[10px] font-bold mt-1 text-pink-600">7 Gün</span>
+                </button>
+                <button onClick={() => handleBadgeClick(14, '14 Gün Sürprizi')} className={`flex flex-col items-center transition-all ${streak >= 14 ? 'opacity-100 scale-110 drop-shadow-md animate-bounce' : 'opacity-40 grayscale'}`}>
+                  <span className="text-3xl">🎁</span><span className="text-[10px] font-bold mt-1 text-pink-600">14 Gün</span>
+                </button>
+                <button onClick={() => handleBadgeClick(21, 'Büyük Final Ödülü')} className={`flex flex-col items-center transition-all ${streak >= 21 ? 'opacity-100 scale-110 drop-shadow-lg' : 'opacity-40 grayscale'}`}>
+                  <span className="text-3xl">🏆</span><span className="text-[10px] font-bold mt-1 text-pink-600">21 Gün</span>
+                </button>
               </div>
-              <div className={`flex flex-col items-center ${streak >= 7 ? 'opacity-100' : 'opacity-30 grayscale'}`}>
-                <span className="text-3xl">🥈</span><span className="text-xs font-bold mt-1 text-pink-600">7 Gün</span>
-              </div>
-              <div className={`flex flex-col items-center ${streak >= 14 ? 'opacity-100' : 'opacity-30 grayscale'}`}>
-                <span className="text-3xl">🥇</span><span className="text-xs font-bold mt-1 text-pink-600">14 Gün</span>
-              </div>
+              <p className="text-[10px] text-center text-gray-400 mt-3">* Ödüllerini görmek için kutulara dokun!</p>
             </div>
+
             <h2 className="text-center font-bold text-gray-700 mb-4">21 Günlük Serüven</h2>
             {loading ? <p className="text-center text-pink-400">Yükleniyor...</p> : (
               <div className="grid grid-cols-4 gap-3">
@@ -196,17 +266,23 @@ export default function Home() {
                 })}
               </div>
             )}
-            <p className="text-xs text-center text-gray-400 mt-6">* Günleri doldurmak veya düzenlemek için üzerine dokun.</p>
           </div>
         )}
 
         {/* FORM VIEW */}
         {activeTab === 'form' && (
           <div className="bg-white/70 backdrop-blur-xl rounded-[2rem] p-6 shadow-xl border border-white animate-in fade-in zoom-in duration-300">
-            <div className="flex justify-between items-center mb-6">
+            <div className="flex justify-between items-center mb-4">
               <h2 className="font-bold text-xl text-pink-600">Gün {selectedDay}</h2>
               <button onClick={() => setActiveTab('calendar')} className="text-sm bg-gray-100 px-3 py-1 rounded-full font-bold text-gray-500">Kapat ✕</button>
             </div>
+
+            {/* BİLİMSEL GERÇEK KARTI */}
+            <div className="bg-blue-50/80 border border-blue-100 p-4 rounded-2xl mb-5 shadow-sm">
+              <p className="text-xs font-extrabold text-blue-500 mb-1 flex items-center">🧬 Vücudunda Neler Oluyor?</p>
+              <p className="text-sm text-blue-800 leading-relaxed font-medium">{getBioFact(selectedDay)}</p>
+            </div>
+
             <form onSubmit={handleSubmit} className="space-y-5">
               <label className={`flex items-center space-x-3 p-4 rounded-2xl shadow-sm border cursor-pointer transition-all ${formData.seker_tuketimi ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}`}>
                 <input type="checkbox" className="w-6 h-6 text-green-500 rounded-md focus:ring-green-400" checked={formData.seker_tuketimi} onChange={e => setFormData({...formData, seker_tuketimi: e.target.checked})} />
@@ -214,6 +290,7 @@ export default function Home() {
                   {formData.seker_tuketimi ? 'Başardım! Şeker Yemedim 🎉' : 'Maalesef Şeker Yedim 😔'}
                 </span>
               </label>
+              
               <div className="bg-white p-4 rounded-2xl shadow-sm border border-pink-100">
                 <label className="block text-sm font-bold text-gray-700 mb-2">Tatlı Krizim Ne Kadardı? (1-5)</label>
                 <input type="range" min="1" max="5" value={formData.tatli_istegi} onChange={e => setFormData({...formData, tatli_istegi: Number(e.target.value)})} className="w-full accent-pink-500" />
@@ -252,8 +329,6 @@ export default function Home() {
         {/* DETAILED STATS VIEW */}
         {activeTab === 'stats' && (
           <div className="space-y-4">
-            
-            {/* Özet Kartları */}
             <div className="grid grid-cols-2 gap-3">
               <div className="bg-white/80 backdrop-blur-md p-4 rounded-2xl shadow-sm border border-pink-100 text-center">
                 <p className="text-xs font-bold text-gray-500 mb-1">Başarı Oranı</p>
@@ -277,7 +352,6 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Akıllı Analiz ve Öneriler */}
             <div className="bg-white/80 backdrop-blur-md p-5 rounded-2xl shadow-md border border-white">
               <h3 className="font-bold text-gray-700 mb-3 flex items-center">💡 Sistem Analizi & Öneriler</h3>
               <ul className="space-y-3 text-sm font-medium">
@@ -308,7 +382,6 @@ export default function Home() {
               </ul>
             </div>
 
-            {/* Gelişmiş Adım Grafiği */}
             <div className="bg-white/80 backdrop-blur-md p-5 rounded-2xl shadow-md border border-white">
               <h3 className="font-bold text-gray-700 mb-4 text-center">Adım Geçmişi (Trend)</h3>
               {records.length === 0 ? <p className="text-center text-gray-400 text-sm">Grafik için veri bekleniyor.</p> : (
@@ -330,43 +403,54 @@ export default function Home() {
                 </div>
               )}
             </div>
-
-            {/* Kriz Seviyesi Grafiği */}
-            <div className="bg-white/80 backdrop-blur-md p-5 rounded-2xl shadow-md border border-white">
-              <h3 className="font-bold text-gray-700 mb-4 text-center">Tatlı Krizleri Şiddeti</h3>
-              {records.length === 0 ? <p className="text-center text-gray-400 text-sm">Grafik için veri bekleniyor.</p> : (
-                <div className="h-40 w-full">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={records}>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
-                      <XAxis dataKey="gun_sayisi" stroke="#9ca3af" fontSize={12} tickLine={false} axisLine={false} />
-                      <Tooltip contentStyle={{ borderRadius: '1rem', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
-                      <Line type="monotone" name="Kriz Seviyesi" dataKey="tatli_istegi" stroke="#ec4899" strokeWidth={3} dot={{r: 4, fill: '#ec4899', strokeWidth: 2, stroke: '#fff'}} />
-                    </LineChart>
-                  </ResponsiveContainer>
-                </div>
-              )}
-            </div>
-
           </div>
         )}
       </div>
 
-      {/* CRISIS BUTTON */}
+      {/* LOVE NOTE BUTTON (Sabit Sol Alt) */}
+      <button onClick={triggerLoveNote} className="fixed bottom-6 left-6 bg-rose-500 text-white font-extrabold py-3 px-5 rounded-full shadow-[0_0_15px_rgba(244,63,94,0.6)] animate-bounce z-40 active:scale-90">
+        💌 Aşk Notu
+      </button>
+
+      {/* CRISIS BUTTON (Sabit Sağ Alt) */}
       <button onClick={triggerCrisis} className="fixed bottom-6 right-6 bg-red-500 text-white font-extrabold py-3 px-5 rounded-full shadow-[0_0_15px_rgba(239,68,68,0.6)] animate-pulse z-40 active:scale-90">
         🚨 Kriz Anı!
       </button>
 
-      {/* CRISIS MODAL */}
+      {/* AÇILIR PENCERELER (MODALS) */}
+      
+      {/* 1. Kriz Modalı */}
       {showCrisis && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-[2rem] p-8 max-w-sm w-full text-center shadow-2xl animate-in zoom-in duration-200">
             <div className="text-5xl mb-4">🆘</div>
             <h3 className="text-xl font-bold text-red-500 mb-4">Dur, Sakin Ol!</h3>
             <p className="text-gray-700 font-medium text-lg leading-relaxed mb-6">"{crisisMsg}"</p>
-            <button onClick={() => setShowCrisis(false)} className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-3 rounded-xl transition-colors">
-              Tamam, İyiyim 😌
-            </button>
+            <button onClick={() => setShowCrisis(false)} className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-3 rounded-xl transition-colors">Tamam, İyiyim 😌</button>
+          </div>
+        </div>
+      )}
+
+      {/* 2. Ödül Modalı */}
+      {rewardModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-[2rem] p-8 max-w-sm w-full text-center shadow-2xl animate-in zoom-in duration-200 border-4 border-pink-100">
+            <div className="text-5xl mb-4">🎁</div>
+            <h3 className="text-xl font-extrabold text-pink-500 mb-4">{rewardModal.title}</h3>
+            <p className="text-gray-700 font-medium text-lg leading-relaxed mb-6">{rewardModal.text}</p>
+            <button onClick={() => setRewardModal(null)} className="w-full bg-pink-500 hover:bg-pink-600 text-white font-bold py-3 rounded-xl transition-colors shadow-md">Kapat</button>
+          </div>
+        </div>
+      )}
+
+      {/* 3. Gizli Aşk Notu Modalı */}
+      {secretNoteModal && (
+        <div className="fixed inset-0 bg-rose-500/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-[2rem] p-8 max-w-sm w-full text-center shadow-2xl animate-in zoom-in duration-300">
+            <div className="text-5xl mb-4 animate-bounce">💌</div>
+            <h3 className="text-2xl font-extrabold text-rose-500 mb-4 font-serif italic">Sevgilim...</h3>
+            <p className="text-gray-700 font-medium text-lg leading-relaxed mb-8 italic">"{secretNoteModal}"</p>
+            <button onClick={() => setSecretNoteModal(null)} className="w-full bg-rose-100 hover:bg-rose-200 text-rose-700 font-bold py-3 rounded-xl transition-colors">Seni Seviyorum! ❤️</button>
           </div>
         </div>
       )}
