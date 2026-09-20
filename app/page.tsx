@@ -33,8 +33,9 @@ export default function Home() {
   const [crisisMsg, setCrisisMsg] = useState('');
   const [streak, setStreak] = useState(0);
 
+  // Varsaılan durum artık: seker_tuketimi: true (Başardım! Şeker Yemedim)
   const [formData, setFormData] = useState({
-    seker_tuketimi: false, su_miktari: '', adim_sayisi: '',
+    seker_tuketimi: true, su_miktari: '', adim_sayisi: '',
     ogun_detayi: '', gece_yemegi: false, kilo: '', tatli_istegi: 1
   });
 
@@ -74,7 +75,8 @@ export default function Home() {
         tatli_istegi: existing.tatli_istegi || 1
       });
     } else {
-      setFormData({ seker_tuketimi: false, su_miktari: '', adim_sayisi: '', ogun_detayi: '', gece_yemegi: false, kilo: '', tatli_istegi: 1 });
+      // Yeni gün girilirken otomatik olarak 'Başardım' (true) gelir
+      setFormData({ seker_tuketimi: true, su_miktari: '', adim_sayisi: '', ogun_detayi: '', gece_yemegi: false, kilo: '', tatli_istegi: 1 });
     }
     setSelectedDay(day);
     setActiveTab('form');
