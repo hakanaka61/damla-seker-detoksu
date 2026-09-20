@@ -9,7 +9,7 @@ export default function Home() {
   });
   const [status, setStatus] = useState('');
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setStatus('Kaydediliyor...');
     
@@ -20,10 +20,10 @@ export default function Home() {
           gun_sayisi: formData.gun_sayisi,
           seker_tuketimi: formData.seker_tuketimi,
           su_miktari: formData.su_miktari,
-          adim_sayisi: parseInt(formData.adim_sayisi),
+          adim_sayisi: parseInt(formData.adim_sayisi as string),
           ogun_detayi: formData.ogun_detayi,
           gece_yemegi: formData.gece_yemegi,
-          kilo: formData.kilo ? parseFloat(formData.kilo) : null
+          kilo: formData.kilo ? parseFloat(formData.kilo as string) : null
         }
       ]);
 
@@ -44,7 +44,7 @@ export default function Home() {
             <label className="block text-sm font-medium mb-1">Kaçıncı Gün? (1-21)</label>
             <input type="number" min="1" max="21" required
               className="w-full border rounded-lg p-3 outline-none focus:ring-2 focus:ring-pink-300"
-              onChange={e => setFormData({...formData, gun_sayisi: e.target.value})} />
+              onChange={e => setFormData({...formData, gun_sayisi: Number(e.target.value)})} />
           </div>
 
           <div className="flex items-center space-x-3 bg-pink-50 p-3 rounded-lg">
