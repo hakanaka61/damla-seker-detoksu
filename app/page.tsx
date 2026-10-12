@@ -7,7 +7,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Calendar, PlusCircle, BarChart2, Image as ImageIcon, 
   Droplets, Camera, Heart, AlertCircle, CheckCircle2, XCircle, 
-  Moon, Scale, Utensils, Smile, Meh, Frown, Sparkles, X, Gift
+  Moon, Scale, Utensils, Smile, Meh, Frown, Sparkles, X, Trophy, 
+  Award, Map, HeartHandshake, ArrowRight
 } from 'lucide-react';
 
 const MOTIVATION_QUOTES = [
@@ -41,7 +42,7 @@ const MOODS = [
 ];
 
 export default function Home() {
-  const [activeTab, setActiveTab] = useState<'calendar' | 'form' | 'stats' | 'album'>('calendar');
+  const [activeTab, setActiveTab] = useState<'calendar' | 'form' | 'stats' | 'album' | 'finale'>('calendar');
   const [records, setRecords] = useState<any[]>([]);
   const [selectedDay, setSelectedDay] = useState(1);
   const [loading, setLoading] = useState(true);
@@ -147,12 +148,25 @@ export default function Home() {
       setFormStatus('Hata: ' + error.message);
     } else {
       setFormStatus('✨ Başarıyla kaydedildi! ✨');
-      if (selectedDay === 30 && formData.seker_tuketimi) {
-        confetti({ particleCount: 300, spread: 120, origin: { y: 0.6 }, colors: ['#ff69b4', '#ffffff', '#ffb6c1'] });
+      if (selectedDay === 30) {
+        triggerMegaConfetti();
+        fetchRecords();
+        setTimeout(() => setActiveTab('finale'), 1500); // 30. GÜN BİTTİĞİNDE DİREKT FİNALE ATAR
+      } else {
+        fetchRecords();
+        setTimeout(() => setActiveTab('calendar'), 1500);
       }
-      fetchRecords();
-      setTimeout(() => setActiveTab('calendar'), 1500);
     }
+  };
+
+  const triggerMegaConfetti = () => {
+    const duration = 3 * 1000;
+    const end = Date.now() + duration;
+    (function frame() {
+      confetti({ particleCount: 5, angle: 60, spread: 55, origin: { x: 0 }, colors: ['#ff69b4', '#ffffff', '#ffb6c1'] });
+      confetti({ particleCount: 5, angle: 120, spread: 55, origin: { x: 1 }, colors: ['#ff69b4', '#ffffff', '#ffb6c1'] });
+      if (Date.now() < end) requestAnimationFrame(frame);
+    }());
   };
 
   const getSmartCoaching = () => {
@@ -173,26 +187,43 @@ export default function Home() {
 
   const todayQuote = MOTIVATION_QUOTES[new Date().getDay() % MOTIVATION_QUOTES.length];
 
-  // STATS
+  // STATS & FINALE CALCULATIONS
   const totalDays = records.length;
+  const isFinished = records.some(r => r.gun_sayisi === 30); // 30. gün kaydedildi mi?
+  
   const sugarFreeDays = records.filter(r => r.seker_tuketimi).length;
   const successRate = totalDays ? Math.round((sugarFreeDays / totalDays) * 100) : 0;
+  
   const validSteps = records.map(r => r.adim_sayisi).filter(a => a && a > 0);
   const avgSteps = validSteps.length ? Math.round(validSteps.reduce((a,b)=>a+b,0) / validSteps.length) : 0;
+  const grandTotalSteps = validSteps.reduce((a,b)=>a+b,0);
+  const totalKm = (grandTotalSteps * 0.000762).toFixed(1); // Ortalama 1 adım = 0.762 metre
+
+  const validWater = records.map(r => r.su_bardagi).filter(w => w && w > 0);
+  const totalWaterGlasses = validWater.reduce((a,b)=>a+b,0);
+  const totalWaterLiters = (totalWaterGlasses * 0.25).toFixed(1); // 1 bardak = 250ml
+
+  const validCravings = records.map(r => r.tatli_istegi).filter(t => t);
+  const avgCraving = validCravings.length ? (validCravings.reduce((a,b)=>a+b,0) / validCravings.length).toFixed(1) : 0;
+  
   const photos = records.filter(r => r.fotograf_url).sort((a,b) => a.gun_sayisi - b.gun_sayisi);
+  const firstPhoto = photos.length > 0 ? photos[0].fotograf_url : null;
+  const lastPhoto = photos.length > 1 ? photos[photos.length - 1].fotograf_url : firstPhoto;
 
   return (
     <main className="min-h-screen bg-[#FDFBFB] bg-gradient-to-br from-pink-50 via-rose-50 to-white pb-32 font-sans text-gray-800 selection:bg-pink-200">
       
-      {/* HEADER - GLASSMORPHISM */}
-      <div className="bg-white/70 backdrop-blur-xl shadow-sm p-6 text-center sticky top-0 z-30 rounded-b-[2.5rem] border-b border-white/50">
-        <h1 className="text-2xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-pink-500 to-rose-400 tracking-tight">
-          Damla'nın 30 Günlük Detoksu
-        </h1>
-        <p className="text-[13px] font-medium text-pink-500/80 mt-2 italic flex items-center justify-center gap-1">
-          <Sparkles size={14}/> {todayQuote}
-        </p>
-      </div>
+      {/* HEADER - Sadece Finale sekmesinde değilken göster */}
+      {activeTab !== 'finale' && (
+        <div className="bg-white/70 backdrop-blur-xl shadow-sm p-6 text-center sticky top-0 z-30 rounded-b-[2.5rem] border-b border-white/50">
+          <h1 className="text-2xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-pink-500 to-rose-400 tracking-tight">
+            Damla'nın 30 Günlük Detoksu
+          </h1>
+          <p className="text-[13px] font-medium text-pink-500/80 mt-2 italic flex items-center justify-center gap-1">
+            <Sparkles size={14}/> {todayQuote}
+          </p>
+        </div>
+      )}
 
       <div className="p-4 max-w-md mx-auto mt-2">
         <AnimatePresence mode="wait">
@@ -200,12 +231,27 @@ export default function Home() {
           {/* 1. TAKVİM GÖRÜNÜMÜ */}
           {activeTab === 'calendar' && (
             <motion.div key="calendar" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.3 }} className="bg-white/60 backdrop-blur-lg rounded-[2rem] p-6 shadow-xl shadow-pink-100/50 border border-white">
+              
+              {/* EĞER 30. GÜN BİTTİYSE DEV ZAFER BUTONU ÇIKAR */}
+              {isFinished && (
+                <motion.button 
+                  animate={{ scale: [1, 1.05, 1] }} 
+                  transition={{ repeat: Infinity, duration: 2 }} 
+                  onClick={() => { triggerMegaConfetti(); setActiveTab('finale'); }}
+                  className="w-full bg-gradient-to-r from-yellow-400 via-orange-400 to-red-400 text-white rounded-3xl p-5 mb-8 shadow-2xl flex flex-col items-center justify-center border-4 border-white"
+                >
+                  <Trophy size={48} className="mb-2 drop-shadow-md" />
+                  <span className="font-extrabold text-xl uppercase tracking-widest drop-shadow-md">30 Günlük Zafer Raporu!</span>
+                  <span className="text-xs font-bold mt-2 bg-white/20 px-4 py-1 rounded-full">Kutlamayı Başlat <ArrowRight size={12} className="inline"/></span>
+                </motion.button>
+              )}
+
               <div className="flex items-center justify-center gap-2 mb-6">
                 <Calendar className="text-pink-500" size={24} />
                 <h2 className="font-bold text-gray-700 text-xl">Serüven Takvimi</h2>
               </div>
               
-              {loading ? <div className="animate-pulse flex space-x-4"><div className="flex-1 space-y-4 py-1"><div className="h-4 bg-pink-200 rounded w-3/4"></div><div className="space-y-2"><div className="h-4 bg-pink-200 rounded"></div></div></div></div> : (
+              {loading ? <div className="text-center animate-pulse text-pink-300">Yükleniyor...</div> : (
                 <div className="grid grid-cols-5 gap-3">
                   {Array.from({ length: 30 }, (_, i) => i + 1).map(day => {
                     const rec = records.find(r => r.gun_sayisi === day);
@@ -232,7 +278,6 @@ export default function Home() {
                 <button onClick={() => setActiveTab('calendar')} className="bg-gray-100 p-2 rounded-full text-gray-500 hover:bg-gray-200 transition-colors"><X size={20}/></button>
               </div>
 
-              {/* Akıllı Koç */}
               <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100 p-4 rounded-2xl mb-6 shadow-sm relative overflow-hidden">
                 <div className="absolute top-0 right-0 p-2 opacity-10"><Sparkles size={40}/></div>
                 <p className="text-[11px] font-extrabold text-blue-600 mb-1 uppercase tracking-wider">Hakan'ın Akıllı Asistanı</p>
@@ -240,8 +285,6 @@ export default function Home() {
               </div>
 
               <form onSubmit={handleSubmit} className="space-y-6">
-                
-                {/* Şeker Durumu */}
                 <div className="flex space-x-3">
                   <button type="button" onClick={() => setFormData({...formData, seker_tuketimi: true})} className={`flex-1 p-4 rounded-2xl font-bold text-sm transition-all flex flex-col items-center gap-2 ${formData.seker_tuketimi ? 'bg-green-500 text-white shadow-lg shadow-green-200 scale-[1.02]' : 'bg-green-50 text-green-600 border border-green-100'}`}>
                     <CheckCircle2 size={28} /><span>Şekersiz Geçti</span>
@@ -251,7 +294,6 @@ export default function Home() {
                   </button>
                 </div>
 
-                {/* Ruh Hali */}
                 <div className="bg-white p-4 rounded-3xl shadow-sm border border-gray-100">
                   <label className="block text-xs font-bold text-gray-400 mb-3 uppercase tracking-wider">Bugün Nasıl Hissediyorsun?</label>
                   <div className="flex justify-between gap-3">
@@ -268,7 +310,6 @@ export default function Home() {
                   </div>
                 </div>
 
-                {/* Su Bardakları (Dokunmatik) */}
                 <div className="bg-blue-50/50 p-4 rounded-3xl shadow-sm border border-blue-100">
                   <label className="block text-xs font-bold text-blue-400 mb-3 uppercase tracking-wider flex items-center gap-1"><Droplets size={14}/> İçilen Su (Bardak)</label>
                   <div className="flex justify-between">
@@ -281,7 +322,6 @@ export default function Home() {
                   <p className="text-center text-[10px] text-blue-400/70 font-bold mt-2">{formData.su_bardagi} / 8 Bardak</p>
                 </div>
 
-                {/* Fotoğraf Yükleme */}
                 <div className="bg-purple-50/50 p-5 rounded-3xl shadow-sm border border-purple-100 text-center relative overflow-hidden">
                   <Camera className="absolute -right-4 -bottom-4 text-purple-200/50" size={100} />
                   <label className="block text-xs font-bold text-purple-500 mb-1 uppercase tracking-wider relative z-10">📸 Günün Anısı (Albüm İçin)</label>
@@ -296,7 +336,6 @@ export default function Home() {
                   )}
                 </div>
 
-                {/* Diğer Girdiler */}
                 <div className="grid grid-cols-2 gap-4">
                   <div className="bg-white p-4 rounded-3xl border border-gray-100 shadow-sm">
                     <label className="block text-xs font-bold text-gray-400 mb-2 uppercase flex items-center gap-1"><Utensils size={14}/> Adım</label>
@@ -336,7 +375,9 @@ export default function Home() {
                   <p className="text-3xl font-extrabold text-pink-500">%{successRate}</p>
                 </div>
                 <div className="bg-white/80 backdrop-blur-md p-5 rounded-3xl shadow-sm border border-white text-center flex flex-col items-center">
-                  <div className="bg-green-100 p-2 rounded-full mb-2"><Utensils className="text-green-500" size={20}/></div>
+
+<Map className="text-green-500" size={20}/>
+<div className="bg-green-100 p-2 rounded-full mb-2"></div>
                   <p className="text-xs font-bold text-gray-400 uppercase">Adım Ort.</p>
                   <p className="text-3xl font-extrabold text-green-500">{avgSteps}</p>
                 </div>
@@ -350,7 +391,7 @@ export default function Home() {
               <div className="flex flex-col items-center justify-center mb-6 text-center">
                 <div className="bg-purple-100 p-3 rounded-full mb-3"><ImageIcon className="text-purple-500" size={28}/></div>
                 <h2 className="font-extrabold text-gray-700 text-xl">Değişim Galerisi</h2>
-                <p className="text-xs text-gray-400 mt-1">30 günün sonunda oluşan muazzam sanat eserin.</p>
+                <p className="text-xs text-gray-400 mt-1">Günden güne oluşan sanat eserin.</p>
               </div>
               
               {photos.length === 0 ? (
@@ -372,39 +413,112 @@ export default function Home() {
               )}
             </motion.div>
           )}
+
+          {/* 5. GİZLİ BÜYÜK FİNAL SEKME (ZAFER RAPORU) */}
+          {activeTab === 'finale' && (
+            <motion.div key="finale" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }} className="bg-gradient-to-br from-yellow-50 via-pink-50 to-orange-50 rounded-[2.5rem] p-6 shadow-2xl border-4 border-white text-center relative overflow-hidden">
+              
+              <div className="absolute top-0 right-0 -mr-10 -mt-10 opacity-20"><Trophy size={200} className="text-yellow-500" /></div>
+              
+              <div className="relative z-10">
+                <div className="bg-yellow-400 text-white font-extrabold px-4 py-1 inline-block rounded-full mb-4 shadow-md uppercase tracking-widest text-xs">Meydan Okuma Tamamlandı</div>
+                <h1 className="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-orange-500 to-pink-600 leading-tight mb-2">TEBRİKLER<br/>DAMLA! 🎊</h1>
+                <p className="text-gray-600 font-medium mb-8">İradenle, gücünle tam 30 günü geride bıraktın. İşte senin başardıkların:</p>
+
+                {/* İleri Seviye Veri Analizi Kartları */}
+                <div className="grid grid-cols-1 gap-4 mb-8 text-left">
+                  <div className="bg-white/80 backdrop-blur-md p-4 rounded-2xl shadow-sm border border-white flex items-center gap-4">
+                    <div className="bg-blue-100 p-3 rounded-full text-blue-500"><Droplets size={24}/></div>
+                    <div>
+                      <p className="text-xs font-bold text-gray-400 uppercase">Toplam İçilen Su</p>
+                      <p className="text-lg font-extrabold text-gray-700">{totalWaterLiters} Litre <span className="text-sm font-medium text-gray-500">({totalWaterGlasses} Bardak)</span></p>
+                    </div>
+                  </div>
+
+                  <div className="bg-white/80 backdrop-blur-md p-4 rounded-2xl shadow-sm border border-white flex items-center gap-4">
+
+<Map size={24}/>
+<div className="bg-green-100 p-3 rounded-full text-green-500"></div>
+                    <div>
+                      <p className="text-xs font-bold text-gray-400 uppercase">Toplam Yürünen Mesafe</p>
+                      <p className="text-lg font-extrabold text-gray-700">{totalKm} Kilometre <span className="text-sm font-medium text-gray-500">({grandTotalSteps.toLocaleString()} Adım)</span></p>
+                    </div>
+                  </div>
+
+                  <div className="bg-white/80 backdrop-blur-md p-4 rounded-2xl shadow-sm border border-white flex items-center gap-4">
+                    <div className="bg-pink-100 p-3 rounded-full text-pink-500"><Award size={24}/></div>
+                    <div>
+                      <p className="text-xs font-bold text-gray-400 uppercase">Şekersiz Gün Başarısı</p>
+                      <p className="text-lg font-extrabold text-gray-700">% {successRate}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* ÖNCESİ VE SONRASI BÖLÜMÜ */}
+                <h3 className="font-extrabold text-gray-700 mb-4 flex items-center justify-center gap-2"><ImageIcon className="text-purple-500"/> Büyük Değişim</h3>
+                <div className="flex gap-2 mb-8">
+                  <div className="flex-1 bg-white p-2 rounded-2xl shadow-sm border border-gray-100">
+                    <p className="text-xs font-bold text-gray-400 mb-2 uppercase">İlk Gün</p>
+                    {firstPhoto ? <img src={firstPhoto} className="w-full aspect-[3/4] object-cover rounded-xl" /> : <div className="w-full aspect-[3/4] bg-gray-100 rounded-xl flex items-center justify-center text-xs text-gray-400">Yok</div>}
+                  </div>
+                  <div className="flex-1 bg-white p-2 rounded-2xl shadow-md border-2 border-pink-200">
+                    <p className="text-xs font-bold text-pink-500 mb-2 uppercase">Son Gün</p>
+                    {lastPhoto ? <img src={lastPhoto} className="w-full aspect-[3/4] object-cover rounded-xl" /> : <div className="w-full aspect-[3/4] bg-gray-100 rounded-xl flex items-center justify-center text-xs text-gray-400">Yok</div>}
+                  </div>
+                </div>
+
+                {/* VEDA MEKTUBU */}
+                <div className="bg-rose-50 border border-rose-100 p-6 rounded-3xl relative">
+                  <HeartHandshake className="text-rose-200 absolute top-4 right-4" size={40} />
+                  <p className="text-rose-900 font-serif italic text-left leading-relaxed text-sm">
+                    "Sevgilim,<br/><br/>
+                    Seninle gurur duyuyorum. 30 gün boyunca her zorluğa, her tatlı krizine göğüs gerdin. Sadece şekeri bırakmakla kalmadın, ne kadar çelik gibi bir iradeye sahip olduğunu bana ve en önemlisi kendine bir kez daha kanıtladın.<br/><br/>
+                    Seni dünden daha çok, yarından daha az seviyorum. Bu başarı tamamen senin!"<br/><br/>
+                    <strong className="block text-right">- En büyük destekçin, Hakan</strong>
+                  </p>
+                </div>
+
+                <button onClick={() => { setActiveTab('calendar'); window.scrollTo(0, 0); }} className="mt-8 bg-gray-800 text-white font-bold py-4 px-8 rounded-full shadow-lg">Takvime Geri Dön</button>
+              </div>
+            </motion.div>
+          )}
+
         </AnimatePresence>
       </div>
 
-      {/* YÜZEN BUTONLAR (Kriz ve Not) */}
-      <div className="fixed top-6 right-4 z-40 flex flex-col gap-3">
-        <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={() => { setCrisisMsg(CRISIS_MESSAGES[Math.floor(Math.random() * CRISIS_MESSAGES.length)]); setShowCrisis(true); }} className="bg-red-500 text-white p-3 rounded-full shadow-lg shadow-red-200 flex items-center justify-center">
-          <AlertCircle size={24} />
-        </motion.button>
-        <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={() => setSecretNoteModal(LOVE_NOTES[Math.floor(Math.random() * LOVE_NOTES.length)])} className="bg-rose-500 text-white p-3 rounded-full shadow-lg shadow-rose-200 flex items-center justify-center">
-          <Heart size={24} />
-        </motion.button>
-      </div>
-
-      {/* BOTTOM NAVIGATION BAR (Gerçek Mobil Uygulama Menüsü) */}
-      <div className="fixed bottom-0 inset-x-0 bg-white/80 backdrop-blur-xl border-t border-gray-100 pb-safe pt-2 px-6 flex justify-between items-center z-40 shadow-[0_-10px_40px_rgba(0,0,0,0.05)] h-20">
-        <button onClick={() => setActiveTab('calendar')} className={`flex flex-col items-center gap-1 transition-all ${activeTab === 'calendar' ? 'text-pink-500 scale-110' : 'text-gray-400 hover:text-gray-600'}`}>
-          <Calendar size={24} className={activeTab === 'calendar' ? 'fill-pink-100' : ''}/>
-          <span className="text-[10px] font-bold">Takvim</span>
-        </button>
-        <button onClick={() => openFormForDay(selectedDay)} className="relative -top-6">
-          <div className="bg-gradient-to-r from-pink-500 to-rose-500 p-4 rounded-full text-white shadow-lg shadow-pink-300 flex items-center justify-center transform transition-transform active:scale-95">
-            <PlusCircle size={28} />
+      {/* ALT MENÜ VE BUTONLAR - SADECE FİNAL SAYFASINDA GİZLENİR */}
+      {activeTab !== 'finale' && (
+        <>
+          <div className="fixed top-6 right-4 z-40 flex flex-col gap-3">
+            <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={() => { setCrisisMsg(CRISIS_MESSAGES[Math.floor(Math.random() * CRISIS_MESSAGES.length)]); setShowCrisis(true); }} className="bg-red-500 text-white p-3 rounded-full shadow-lg shadow-red-200 flex items-center justify-center">
+              <AlertCircle size={24} />
+            </motion.button>
+            <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={() => setSecretNoteModal(LOVE_NOTES[Math.floor(Math.random() * LOVE_NOTES.length)])} className="bg-rose-500 text-white p-3 rounded-full shadow-lg shadow-rose-200 flex items-center justify-center">
+              <Heart size={24} />
+            </motion.button>
           </div>
-        </button>
-        <button onClick={() => setActiveTab('stats')} className={`flex flex-col items-center gap-1 transition-all ${activeTab === 'stats' ? 'text-pink-500 scale-110' : 'text-gray-400 hover:text-gray-600'}`}>
-          <BarChart2 size={24} className={activeTab === 'stats' ? 'fill-pink-100' : ''}/>
-          <span className="text-[10px] font-bold">Analiz</span>
-        </button>
-        <button onClick={() => setActiveTab('album')} className={`flex flex-col items-center gap-1 transition-all ${activeTab === 'album' ? 'text-pink-500 scale-110' : 'text-gray-400 hover:text-gray-600'}`}>
-          <ImageIcon size={24} className={activeTab === 'album' ? 'fill-pink-100' : ''}/>
-          <span className="text-[10px] font-bold">Albüm</span>
-        </button>
-      </div>
+
+          <div className="fixed bottom-0 inset-x-0 bg-white/80 backdrop-blur-xl border-t border-gray-100 pb-safe pt-2 px-6 flex justify-between items-center z-40 shadow-[0_-10px_40px_rgba(0,0,0,0.05)] h-20">
+            <button onClick={() => setActiveTab('calendar')} className={`flex flex-col items-center gap-1 transition-all ${activeTab === 'calendar' ? 'text-pink-500 scale-110' : 'text-gray-400 hover:text-gray-600'}`}>
+              <Calendar size={24} className={activeTab === 'calendar' ? 'fill-pink-100' : ''}/>
+              <span className="text-[10px] font-bold">Takvim</span>
+            </button>
+            <button onClick={() => openFormForDay(selectedDay)} className="relative -top-6">
+              <div className="bg-gradient-to-r from-pink-500 to-rose-500 p-4 rounded-full text-white shadow-lg shadow-pink-300 flex items-center justify-center transform transition-transform active:scale-95">
+                <PlusCircle size={28} />
+              </div>
+            </button>
+            <button onClick={() => setActiveTab('stats')} className={`flex flex-col items-center gap-1 transition-all ${activeTab === 'stats' ? 'text-pink-500 scale-110' : 'text-gray-400 hover:text-gray-600'}`}>
+              <BarChart2 size={24} className={activeTab === 'stats' ? 'fill-pink-100' : ''}/>
+              <span className="text-[10px] font-bold">Analiz</span>
+            </button>
+            <button onClick={() => setActiveTab('album')} className={`flex flex-col items-center gap-1 transition-all ${activeTab === 'album' ? 'text-pink-500 scale-110' : 'text-gray-400 hover:text-gray-600'}`}>
+              <ImageIcon size={24} className={activeTab === 'album' ? 'fill-pink-100' : ''}/>
+              <span className="text-[10px] font-bold">Albüm</span>
+            </button>
+          </div>
+        </>
+      )}
 
       {/* MODALLAR */}
       <AnimatePresence>
