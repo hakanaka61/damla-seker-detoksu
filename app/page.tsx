@@ -1,7 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
-import { AreaChart, Area, XAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import confetti from 'canvas-confetti';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
@@ -145,13 +144,13 @@ export default function Home() {
     setUploading(false);
 
     if (error) {
-      setFormStatus('Hata: ' + error.message);
+      setFormStatus(`Hata: ${error.message}`);
     } else {
       setFormStatus('✨ Başarıyla kaydedildi! ✨');
       if (selectedDay === 30) {
         triggerMegaConfetti();
         fetchRecords();
-        setTimeout(() => setActiveTab('finale'), 1500); // 30. GÜN BİTTİĞİNDE DİREKT FİNALE ATAR
+        setTimeout(() => setActiveTab('finale'), 1500); 
       } else {
         fetchRecords();
         setTimeout(() => setActiveTab('calendar'), 1500);
@@ -172,24 +171,23 @@ export default function Home() {
   const getSmartCoaching = () => {
     if (selectedDay === 1) return "30 günlük serüvenin ilk günü! Bol su içmeyi ve adımlarını yüksek tutmayı unutma. Başarıyoruz! 🚀";
     const yesterday = records.find(r => r.gun_sayisi === selectedDay - 1);
-    if (!yesterday) return `Dünün verisi girilmemiş. Bugün temiz bir sayfa açıyoruz! Bol hareket, bol su! 💧`;
+    if (!yesterday) return "Dünün verisi girilmemiş. Bugün temiz bir sayfa açıyoruz! Bol hareket, bol su! 💧";
     let tips = [];
     const prevWater = yesterday.su_bardagi || 0;
     const prevSteps = yesterday.adim_sayisi || 0;
 
-    if (prevWater < 6) tips.push(`Dün suyunu az içtin. Bugün hedefin en az 8 bardak! 🚰`);
-    if (prevSteps < 7000) tips.push(`Dün hareketin azdı. Bugün 8.000 adımın üstüne çıkıyoruz! 🚶‍♀️`);
-    if (yesterday.gece_yemegi) tips.push(`Dün gece kaçamağı olmuş. Bugün yatmadan 3 saat önce mutfağı kapatıyoruz. 🌙`);
-    if (tips.length === 0) tips.push(`Dün harikaydın! Tüm hedeflerini tutturdun, bugün de aynı tempoyla devam! 🌟`);
+    if (prevWater < 6) tips.push("Dün suyunu az içtin. Bugün hedefin en az 8 bardak! 🚰");
+    if (prevSteps < 7000) tips.push("Dün hareketin azdı. Bugün 8.000 adımın üstüne çıkıyoruz! 🚶‍♀️");
+    if (yesterday.gece_yemegi) tips.push("Dün gece kaçamağı olmuş. Bugün yatmadan 3 saat önce mutfağı kapatıyoruz. 🌙");
+    if (tips.length === 0) tips.push("Dün harikaydın! Tüm hedeflerini tutturdun, bugün de aynı tempoyla devam! 🌟");
     
     return tips.join(" ");
   };
 
   const todayQuote = MOTIVATION_QUOTES[new Date().getDay() % MOTIVATION_QUOTES.length];
 
-  // STATS & FINALE CALCULATIONS
   const totalDays = records.length;
-  const isFinished = records.some(r => r.gun_sayisi === 30); // 30. gün kaydedildi mi?
+  const isFinished = records.some(r => r.gun_sayisi === 30); 
   
   const sugarFreeDays = records.filter(r => r.seker_tuketimi).length;
   const successRate = totalDays ? Math.round((sugarFreeDays / totalDays) * 100) : 0;
@@ -197,15 +195,12 @@ export default function Home() {
   const validSteps = records.map(r => r.adim_sayisi).filter(a => a && a > 0);
   const avgSteps = validSteps.length ? Math.round(validSteps.reduce((a,b)=>a+b,0) / validSteps.length) : 0;
   const grandTotalSteps = validSteps.reduce((a,b)=>a+b,0);
-  const totalKm = (grandTotalSteps * 0.000762).toFixed(1); // Ortalama 1 adım = 0.762 metre
+  const totalKm = (grandTotalSteps * 0.000762).toFixed(1); 
 
   const validWater = records.map(r => r.su_bardagi).filter(w => w && w > 0);
   const totalWaterGlasses = validWater.reduce((a,b)=>a+b,0);
-  const totalWaterLiters = (totalWaterGlasses * 0.25).toFixed(1); // 1 bardak = 250ml
+  const totalWaterLiters = (totalWaterGlasses * 0.25).toFixed(1); 
 
-  const validCravings = records.map(r => r.tatli_istegi).filter(t => t);
-  const avgCraving = validCravings.length ? (validCravings.reduce((a,b)=>a+b,0) / validCravings.length).toFixed(1) : 0;
-  
   const photos = records.filter(r => r.fotograf_url).sort((a,b) => a.gun_sayisi - b.gun_sayisi);
   const firstPhoto = photos.length > 0 ? photos[0].fotograf_url : null;
   const lastPhoto = photos.length > 1 ? photos[photos.length - 1].fotograf_url : firstPhoto;
@@ -213,11 +208,10 @@ export default function Home() {
   return (
     <main className="min-h-screen bg-[#FDFBFB] bg-gradient-to-br from-pink-50 via-rose-50 to-white pb-32 font-sans text-gray-800 selection:bg-pink-200">
       
-      {/* HEADER - Sadece Finale sekmesinde değilken göster */}
       {activeTab !== 'finale' && (
         <div className="bg-white/70 backdrop-blur-xl shadow-sm p-6 text-center sticky top-0 z-30 rounded-b-[2.5rem] border-b border-white/50">
           <h1 className="text-2xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-pink-500 to-rose-400 tracking-tight">
-            Damla'nın 30 Günlük Detoksu
+            {"Damla'nın 30 Günlük Detoksu"}
           </h1>
           <p className="text-[13px] font-medium text-pink-500/80 mt-2 italic flex items-center justify-center gap-1">
             <Sparkles size={14}/> {todayQuote}
@@ -228,11 +222,9 @@ export default function Home() {
       <div className="p-4 max-w-md mx-auto mt-2">
         <AnimatePresence mode="wait">
           
-          {/* 1. TAKVİM GÖRÜNÜMÜ */}
           {activeTab === 'calendar' && (
             <motion.div key="calendar" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.3 }} className="bg-white/60 backdrop-blur-lg rounded-[2rem] p-6 shadow-xl shadow-pink-100/50 border border-white">
               
-              {/* EĞER 30. GÜN BİTTİYSE DEV ZAFER BUTONU ÇIKAR */}
               {isFinished && (
                 <motion.button 
                   animate={{ scale: [1, 1.05, 1] }} 
@@ -270,7 +262,6 @@ export default function Home() {
             </motion.div>
           )}
 
-          {/* 2. FORM GÖRÜNÜMÜ */}
           {activeTab === 'form' && (
             <motion.div key="form" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="bg-white/80 backdrop-blur-xl rounded-[2.5rem] p-6 shadow-2xl shadow-pink-100/50 border border-white">
               <div className="flex justify-between items-center mb-6">
@@ -280,7 +271,7 @@ export default function Home() {
 
               <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100 p-4 rounded-2xl mb-6 shadow-sm relative overflow-hidden">
                 <div className="absolute top-0 right-0 p-2 opacity-10"><Sparkles size={40}/></div>
-                <p className="text-[11px] font-extrabold text-blue-600 mb-1 uppercase tracking-wider">Hakan'ın Akıllı Asistanı</p>
+                <p className="text-[11px] font-extrabold text-blue-600 mb-1 uppercase tracking-wider">{"Hakan'ın Akıllı Asistanı"}</p>
                 <p className="text-sm text-blue-900 font-medium leading-relaxed">{getSmartCoaching()}</p>
               </div>
 
@@ -331,6 +322,7 @@ export default function Home() {
                   </div>
                   {formData.fotograf_url && !file && (
                     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mt-4 relative z-10">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img src={formData.fotograf_url} alt="Anı" className="h-24 mx-auto rounded-xl shadow-md object-cover border-2 border-white" />
                     </motion.div>
                   )}
@@ -365,7 +357,6 @@ export default function Home() {
             </motion.div>
           )}
 
-          {/* 3. İSTATİSTİKLER */}
           {activeTab === 'stats' && (
             <motion.div key="stats" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }} className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
@@ -385,7 +376,6 @@ export default function Home() {
             </motion.div>
           )}
 
-          {/* 4. ALBÜM */}
           {activeTab === 'album' && (
             <motion.div key="album" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="bg-white/60 backdrop-blur-xl rounded-[2.5rem] p-6 shadow-xl border border-white">
               <div className="flex flex-col items-center justify-center mb-6 text-center">
@@ -403,6 +393,7 @@ export default function Home() {
                 <div className="grid grid-cols-2 gap-4">
                   {photos.map((rec) => (
                     <motion.div whileHover={{ scale: 1.05 }} key={rec.gun_sayisi} className="relative group rounded-2xl overflow-hidden shadow-md aspect-square bg-gray-100">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img src={rec.fotograf_url} alt={`${rec.gun_sayisi}. Gün`} className="w-full h-full object-cover" />
                       <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent p-3 pt-8">
                         <p className="text-white font-bold text-sm">{rec.gun_sayisi}. Gün</p>
@@ -414,7 +405,6 @@ export default function Home() {
             </motion.div>
           )}
 
-          {/* 5. GİZLİ BÜYÜK FİNAL SEKME (ZAFER RAPORU) */}
           {activeTab === 'finale' && (
             <motion.div key="finale" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }} className="bg-gradient-to-br from-yellow-50 via-pink-50 to-orange-50 rounded-[2.5rem] p-6 shadow-2xl border-4 border-white text-center relative overflow-hidden">
               
@@ -425,7 +415,6 @@ export default function Home() {
                 <h1 className="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-orange-500 to-pink-600 leading-tight mb-2">TEBRİKLER<br/>DAMLA! 🎊</h1>
                 <p className="text-gray-600 font-medium mb-8">İradenle, gücünle tam 30 günü geride bıraktın. İşte senin başardıkların:</p>
 
-                {/* İleri Seviye Veri Analizi Kartları */}
                 <div className="grid grid-cols-1 gap-4 mb-8 text-left">
                   <div className="bg-white/80 backdrop-blur-md p-4 rounded-2xl shadow-sm border border-white flex items-center gap-4">
                     <div className="bg-blue-100 p-3 rounded-full text-blue-500"><Droplets size={24}/></div>
@@ -454,26 +443,26 @@ export default function Home() {
                   </div>
                 </div>
 
-                {/* ÖNCESİ VE SONRASI BÖLÜMÜ */}
                 <h3 className="font-extrabold text-gray-700 mb-4 flex items-center justify-center gap-2"><ImageIcon className="text-purple-500"/> Büyük Değişim</h3>
                 <div className="flex gap-2 mb-8">
                   <div className="flex-1 bg-white p-2 rounded-2xl shadow-sm border border-gray-100">
                     <p className="text-xs font-bold text-gray-400 mb-2 uppercase">İlk Gün</p>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
                     {firstPhoto ? <img src={firstPhoto} className="w-full aspect-[3/4] object-cover rounded-xl" /> : <div className="w-full aspect-[3/4] bg-gray-100 rounded-xl flex items-center justify-center text-xs text-gray-400">Yok</div>}
                   </div>
                   <div className="flex-1 bg-white p-2 rounded-2xl shadow-md border-2 border-pink-200">
                     <p className="text-xs font-bold text-pink-500 mb-2 uppercase">Son Gün</p>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
                     {lastPhoto ? <img src={lastPhoto} className="w-full aspect-[3/4] object-cover rounded-xl" /> : <div className="w-full aspect-[3/4] bg-gray-100 rounded-xl flex items-center justify-center text-xs text-gray-400">Yok</div>}
                   </div>
                 </div>
 
-                {/* VEDA MEKTUBU */}
                 <div className="bg-rose-50 border border-rose-100 p-6 rounded-3xl relative">
                   <HeartHandshake className="text-rose-200 absolute top-4 right-4" size={40} />
                   <p className="text-rose-900 font-serif italic text-left leading-relaxed text-sm">
-                    "Sevgilim,<br/><br/>
-                    Seninle gurur duyuyorum. 30 gün boyunca her zorluğa, her tatlı krizine göğüs gerdin. Sadece şekeri bırakmakla kalmadın, ne kadar çelik gibi bir iradeye sahip olduğunu bana ve en önemlisi kendine bir kez daha kanıtladın.<br/><br/>
-                    Seni dünden daha çok, yarından daha az seviyorum. Bu başarı tamamen senin!"<br/><br/>
+                    {"\"Sevgilim,"}<br/><br/>
+                    {"Seninle gurur duyuyorum. 30 gün boyunca her zorluğa, her tatlı krizine göğüs gerdin. Sadece şekeri bırakmakla kalmadın, ne kadar çelik gibi bir iradeye sahip olduğunu bana ve en önemlisi kendine bir kez daha kanıtladın."}<br/><br/>
+                    {"Seni dünden daha çok, yarından daha az seviyorum. Bu başarı tamamen senin!\""}<br/><br/>
                     <strong className="block text-right">- En büyük destekçin, Hakan</strong>
                   </p>
                 </div>
@@ -486,7 +475,6 @@ export default function Home() {
         </AnimatePresence>
       </div>
 
-      {/* ALT MENÜ VE BUTONLAR - SADECE FİNAL SAYFASINDA GİZLENİR */}
       {activeTab !== 'finale' && (
         <>
           <div className="fixed top-6 right-4 z-40 flex flex-col gap-3">
@@ -520,7 +508,6 @@ export default function Home() {
         </>
       )}
 
-      {/* MODALLAR */}
       <AnimatePresence>
         {showCrisis && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/60 backdrop-blur-md z-50 flex items-center justify-center p-4">
@@ -528,7 +515,7 @@ export default function Home() {
               <div className="absolute top-0 inset-x-0 h-2 bg-red-500"></div>
               <AlertCircle size={60} className="mx-auto text-red-500 mb-4" />
               <h3 className="text-2xl font-extrabold text-red-500 mb-4">Derin Bir Nefes Al!</h3>
-              <p className="text-gray-700 font-medium text-lg leading-relaxed mb-8">"{crisisMsg}"</p>
+              <p className="text-gray-700 font-medium text-lg leading-relaxed mb-8">{"\""}{crisisMsg}{"\""}</p>
               <button onClick={() => setShowCrisis(false)} className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-4 rounded-2xl transition-colors">Tamam, Sakinleştim 😌</button>
             </motion.div>
           </motion.div>
@@ -539,7 +526,7 @@ export default function Home() {
             <motion.div initial={{ scale: 0.9, rotate: -2 }} animate={{ scale: 1, rotate: 0 }} exit={{ scale: 0.9, rotate: 2 }} className="bg-white rounded-[2.5rem] p-8 max-w-sm w-full text-center shadow-2xl relative">
               <Heart size={60} className="mx-auto text-rose-500 mb-4 fill-rose-100" />
               <h3 className="text-2xl font-extrabold text-rose-500 mb-4 font-serif italic">Sevgilim...</h3>
-              <p className="text-gray-700 font-medium text-lg leading-relaxed mb-8 italic">"{secretNoteModal}"</p>
+              <p className="text-gray-700 font-medium text-lg leading-relaxed mb-8 italic">{"\""}{secretNoteModal}{"\""}</p>
               <button onClick={() => setSecretNoteModal(null)} className="w-full bg-rose-50 text-rose-600 font-bold py-4 rounded-2xl border border-rose-100">Seni Seviyorum! ❤️</button>
             </motion.div>
           </motion.div>
